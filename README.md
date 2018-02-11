@@ -12,6 +12,7 @@ Examples of automated interaction with the Wyvern decentralized digital asset ex
 
   - [cryptokitties-resale](cryptokitties-resale): Buy undervalued CryptoKitties and resell them on the Wyvern Exchange for a profit
   - [decentraland-autobid](decentraland-autobid): Automatically bid for Decentraland parcels based on prices of other proximate parcels
+  - [rinkeby-nft-autogenerate](rinkeby-nft-autogenerate): Automatically mint and sell useless NFTs (Rinkeby PoC demo)
 
 ### Contributing
 

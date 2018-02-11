@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "axios": "^0.17.1",
+    "bignumber.js": "5.0.0",
+    "eth-hd-wallet": "^0.3.0",
+    "web3": "^0.20.0",
+    "web3-provider-engine": "^13.6.0",
+    "wyvern-js": "file:../../wyvern-js",
+    "wyvern-schemas": "file:../../wyvern-schemas"
+  }
+}
