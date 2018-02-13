@@ -1,5 +1,4 @@
 const fs = require('fs')
-const axios = require('axios')
 const Web3 = require('web3')
 const BigNumber = require('bignumber.js')
 const ethUtil = require('ethereumjs-util')
@@ -8,6 +7,7 @@ const { generateMnemonic, EthHdWallet } = require('eth-hd-wallet')
 
 const { WyvernProtocol } = require('wyvern-js')
 const { tokens, schemas, encodeSell } = require('wyvern-schemas')
+const { WyvernExchange } = require('wyvern-exchange')
 
 var mnemonic
 try {
@@ -19,6 +19,7 @@ try {
 const wallet = EthHdWallet.fromMnemonic(mnemonic)
 const account = wallet.generateAddresses(1)[0]
 const config = require('./config.json')
+const wyvernExchange = new WyvernExchange(config.orderbook_url)
 const MintableNonFungibleToken = require('./MintableNonFungibleToken.json')
 const ZeroClientProvider = require('web3-provider-engine/zero.js')
 const HookedWalletEthTxSubprovider = require('web3-provider-engine/subproviders/hooked-wallet-ethtx.js')
@@ -58,33 +59,6 @@ const promisify = (inner) =>
       resolve(res)
     })
   )
-
-const postOrder = async (order) => {
-  const hash = await protocolInstance.wyvernExchange.hashOrder_.callAsync(
-    [order.exchange, order.maker, order.taker, order.feeRecipient, order.target, order.staticTarget, order.paymentToken],
-    [order.makerFee, order.takerFee, order.basePrice, order.extra, order.listingTime, order.expirationTime, order.salt],
-    order.side,
-    order.saleKind,
-    order.howToCall,
-    order.calldata,
-    order.replacementPattern,
-    order.staticExtradata)
-  if (hash !== order.hash) throw new Error('Hashes did not match: ', hash + ', ' + order.hash)
-  const valid = await protocolInstance.wyvernExchange.validateOrder_.callAsync(
-    [order.exchange, order.maker, order.taker, order.feeRecipient, order.target, order.staticTarget, order.paymentToken],
-    [order.makerFee, order.takerFee, order.basePrice, order.extra, order.listingTime, order.expirationTime, order.salt],
-    order.side,
-    order.saleKind,
-    order.howToCall,
-    order.calldata,
-    order.replacementPattern,
-    order.staticExtradata,
-    parseInt(order.v),
-    order.r || '0x',
-    order.s || '0x')
-  if (!valid) throw new Error('Order did not pass validation!')
-  return axios.post(`${config.orderbook_url}/v1/orders/post`, order)
-}
 
 const createOrder = (nft, amount) => {
   const { target, calldata, replacementPattern } = encodeSell(rinkebyNFTSchema, nft)
@@ -126,10 +100,14 @@ const go = async () => {
     throw new Error('Nonzero balance required!')
   }
   var nonce = await promisify(c => web3.eth.getTransactionCount(account, c))
-  if (!config.contract_address) {
+  var proxy = await protocolInstance.wyvernProxyRegistry.proxies.callAsync(account)
+  console.log('Proxy: ' + proxy)
+  if (proxy === WyvernProtocol.NULL_ADDRESS) {
+    const txData = protocolInstance.wyvernProxyRegistry.registerProxy.getABIEncodedTransactionData()
     const rawTx = wallet.sign({
       from: account,
-      data: MintableNonFungibleToken.bytecode,
+      to: WyvernProtocol.getProxyRegistryContractAddress('rinkeby'),
+      data: txData,
       value: 0,
       nonce: nonce++,
       gasPrice: 3000000000,
@@ -137,11 +115,48 @@ const go = async () => {
       chainId: 4
     })
     const txHash = await promisify(c => web3.eth.sendRawTransaction(rawTx, c))
-    console.log(txHash)
+    console.log('Creating proxy; TX: ' + txHash)
+    await protocolInstance.awaitTransactionMinedAsync(txHash)
+    proxy = await protocolInstance.wyvernProxyRegistry.proxies.callAsync(account)
+    console.log('Proxy: ' + proxy)
+  }
+  const contract = web3.eth.contract(MintableNonFungibleToken.abi).at(config.contract_address)
+  var myNFTs = []
+  var proxyNFTs = []
+  var index = 0
+  while (true) {
+    var mine = await promisify(c => contract.tokenOfOwnerByIndex.call(account, index, c))
+    mine = mine.toNumber()
+    if (mine === 0) {
+      break
+    } else {
+      myNFTs.push(mine)
+      index++
+    }
+  }
+  for (var ind = 0; ind < myNFTs.length; ind++) {
+    const txData = contract.transfer.getData(proxy, myNFTs[ind])
+    const rawTx = wallet.sign({from: account, to: contract.address, data: txData, value: 0, nonce: nonce++, gasPrice: 2000000000, gasLimit: 200000, chainId: 4})
+    const txHash = await promisify(c => web3.eth.sendRawTransaction(rawTx, c))
+    console.log('Transferring NFT #' + myNFTs[ind] + ' to proxy: ' + txHash)
+  }
+  if (myNFTs.length > 0) {
     process.exit(0)
   }
-  // const contract = new web3.eth.Contract(MintableNonFungibleToken.abi, config.contract_address)
-  for (var nft = 0; nft < 50; nft++) {
+  index = 0
+  while (true) {
+    var proxys = await promisify(c => contract.tokenOfOwnerByIndex.call(proxy, index, c))
+    proxys = proxys.toNumber()
+    if (proxys === 0) {
+      break
+    } else {
+      proxyNFTs.push(proxys)
+      index++
+    }
+  }
+  proxyNFTs.sort()
+  for (ind = 0; ind < proxyNFTs.length; ind++) {
+    const nft = proxyNFTs[ind]
     const order = createOrder(nft, Math.round(Math.random() * 1000) / 1000)
     const hash = WyvernProtocol.getOrderHashHex(order)
     const signature = await protocolInstance.signOrderHashAsync(hash, account)
@@ -149,21 +164,8 @@ const go = async () => {
     order.r = signature.r
     order.s = signature.s
     order.v = signature.v
-    await postOrder(order)
+    await wyvernExchange.postOrder(order)
     console.log('Posted order to sell NFT #' + nft + ' - order hash: ' + hash)
-    /*
-    const mintBytecode = contract.mint(account, nft).encodeABI()
-    const rawMintTx = wallet.sign({
-      from: account,
-      data: mintBytecode,
-      value: 0,
-      nonce: nonce++,
-      gasPrice: 3000000000,
-      gasLimit: 120000,
-      chainId: 4
-    })
-    const mintTxHash = await promisify(c => web3.eth.sendSignedTransaction(rawMintTx, c))
-    */
   }
 }
 

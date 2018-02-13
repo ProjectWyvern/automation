@@ -1,5 +1,5 @@
 {
-  "orderbook_url": "https://bookrinkeby.projectwyvern.com",
-  "web3_provider": "https://rinkeby.infura.io",
-  "contract_address": "0x6d0a7d0e72514ea85add09ff85754879b036cb25"
+  "orderbook_url": "http://127.0.0.1:8080",
+  "web3_provider": "http://127.0.0.1:8545",
+  "contract_address": "0x07a6dc6e3f1120ca03658d473d10aee3af5f8abb"
 }
