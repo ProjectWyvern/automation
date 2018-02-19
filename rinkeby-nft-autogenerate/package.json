@@ -2,10 +2,11 @@
   "dependencies": {
     "bignumber.js": "5.0.0",
     "eth-hd-wallet": "^0.3.0",
+    "ethereumjs-abi": "https://github.com/ProjectWyvern/ethereumjs-abi.git",
     "web3": "^0.20.0",
     "web3-provider-engine": "^13.6.0",
-    "wyvern-exchange": "file:../../wyvern-exchange",
-    "wyvern-js": "file:../../wyvern-js",
-    "wyvern-schemas": "file:../../wyvern-schemas"
+    "wyvern-exchange": "^0.1.4",
+    "wyvern-js": "^0.1.1",
+    "wyvern-schemas": "^0.1.6"
   }
 }

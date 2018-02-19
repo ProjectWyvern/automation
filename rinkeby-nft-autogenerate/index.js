@@ -7,7 +7,7 @@ const { generateMnemonic, EthHdWallet } = require('eth-hd-wallet')
 
 const { WyvernProtocol } = require('wyvern-js')
 const { tokens, schemas, encodeSell } = require('wyvern-schemas')
-const { WyvernExchange } = require('wyvern-exchange')
+const { WyvernExchange, feeRecipient } = require('wyvern-exchange')
 
 var mnemonic
 try {
@@ -69,7 +69,7 @@ const createOrder = (nft, amount) => {
     taker: WyvernProtocol.NULL_ADDRESS,
     makerFee: new BigNumber(0),
     takerFee: new BigNumber(0),
-    feeRecipient: account,
+    feeRecipient: feeRecipient.toLowerCase(),
     side: '1',
     saleKind: '0',
     target: target,
@@ -86,7 +86,7 @@ const createOrder = (nft, amount) => {
     salt: WyvernProtocol.generatePseudoRandomSalt(),
     metadata: {
       schema: 'TestRinkebyNFT',
-      nft: nft
+      asset: '' + nft
     }
   }
 }
@@ -155,9 +155,9 @@ const go = async () => {
     }
   }
   proxyNFTs.sort()
-  for (ind = 0; ind < proxyNFTs.length; ind++) {
+  for (ind = 51; ind < proxyNFTs.length; ind++) {
     const nft = proxyNFTs[ind]
-    const order = createOrder(nft, Math.round(Math.random() * 1000) / 1000)
+    const order = createOrder(nft, Math.round(Math.random() * 10) / 1000)
     const hash = WyvernProtocol.getOrderHashHex(order)
     const signature = await protocolInstance.signOrderHashAsync(hash, account)
     order.hash = hash
@@ -165,6 +165,7 @@ const go = async () => {
     order.s = signature.s
     order.v = signature.v
     await wyvernExchange.postOrder(order)
+    await promisify(c => setTimeout(() => c(null, null), 3000))
     console.log('Posted order to sell NFT #' + nft + ' - order hash: ' + hash)
   }
 }
