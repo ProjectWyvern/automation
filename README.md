@@ -4,13 +4,17 @@
 
 [![https://badges.frapsoft.com/os/mit/mit.svg?v=102](https://badges.frapsoft.com/os/mit/mit.svg?v=102)](https://opensource.org/licenses/MIT) [![Build Status](https://travis-ci.org/ProjectWyvern/automation.svg?branch=master)](https://travis-ci.org/ProjectWyvern/wyvern-ethereum)
 
+<a href="https://gitcoin.co/explorer/?q=https://github.com/ProjectWyvern/automation" title=”Push Open Source Forward”>
+  <img src='https://gitcoin.co/static/v2/images/promo_buttons/slice_01.png' alt=’Browse Gitcoin Bounties’ width="267px" height="52px"/>
+</a>
+
 ### Synopsis
 
 Examples of automated interaction with the Wyvern decentralized digital asset exchange protocol.
 
 ### Examples
 
-  - [cryptokitties-resale](cryptokitties-resale): Buy undervalued CryptoKitties and resell them on the Wyvern Exchange for a profit
+  - [cryptokitties-resale](cryptokitties-resale): Snipe CryptoKitties right before auctions end and resell them on the Wyvern Exchange for a profit
   - [decentraland-autobid](decentraland-autobid): Automatically bid for Decentraland parcels based on prices of other proximate parcels
   - [rinkeby-nft-autogenerate](rinkeby-nft-autogenerate): Automatically mint and sell useless NFTs (Rinkeby PoC demo)
 
